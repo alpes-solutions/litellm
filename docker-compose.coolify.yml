@@ -88,29 +88,28 @@ services:
   # Prometheus para métricas (OPCIONAL)
   # NO necesita dominio público normalmente
   # Si quieres acceder externamente, asigna dominio separado en Coolify
-  # COMENTADO: requiere prometheus.yml que no está en el repo
-  # prometheus:
-  #   image: prom/prometheus:latest
-  #   restart: unless-stopped
-  #   volumes:
-  #     - prometheus_data:/prometheus
-  #     - ./prometheus.yml:/etc/prometheus/prometheus.yml
-  #   ports:
-  #     - "9090:9090"
-  #   command:
-  #     - "--config.file=/etc/prometheus/prometheus.yml"
-  #     - "--storage.tsdb.path=/prometheus"
-  #     - "--storage.tsdb.retention.time=15d"
-  #   networks:
-  #     - litellm-network
-  #   labels:
-  #     - "coolify.managed=false"
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+    networks:
+      - litellm-network
+    labels:
+      - "coolify.managed=false"
 
 volumes:
   postgres_data:
     name: litellm_postgres_data
-  # prometheus_data:
-  #   name: litellm_prometheus_data
+  prometheus_data:
+    name: litellm_prometheus_data
 
 networks:
   litellm-network:
