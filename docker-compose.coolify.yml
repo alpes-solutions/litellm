@@ -1,0 +1,111 @@
+##############################################
+# LiteLLM Docker Compose - Optimized for Coolify
+# 
+# CONFIGURACION DE DOMINIO:
+# Solo necesitas 1 dominio para el servicio 'litellm'
+# En Coolify, asigna tu dominio (ej: litellm.tudominio.com) al servicio 'litellm'
+# 
+# Los servicios 'db' y 'prometheus' NO necesitan dominio público
+# (son internos o de monitoreo)
+##############################################
+
+services:
+  litellm:
+    # Servicio principal - ASIGNAR DOMINIO EN COOLIFY
+    # Expone: API (puerto 4000) + UI Dashboard
+    # 
+    # Usar imagen pre-construida para despliegue rápido
+    # Para producción con código custom, descomenta las líneas de build
+    # build:
+    #   context: .
+    #   args:
+    #     target: runtime
+    image: ghcr.io/berriai/litellm:main-stable
+    ports:
+      - "4000:4000"
+    environment:
+      DATABASE_URL: "postgresql://llmproxy:dbpassword9090@db:5432/litellm"
+      STORE_MODEL_IN_DB: "True"
+      # Variables de entorno desde Coolify
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-1234}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Optional providers
+      AZURE_API_KEY: ${AZURE_API_KEY:-}
+      AZURE_API_BASE: ${AZURE_API_BASE:-}
+      COHERE_API_KEY: ${COHERE_API_KEY:-}
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness')"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - litellm-network
+    labels:
+      # Labels para Coolify
+      - "coolify.managed=true"
+      - "coolify.name=litellm"
+
+  db:
+    # Base de datos PostgreSQL - NO necesita dominio público
+    # Comunicación interna únicamente (no exponer)
+    image: postgres:16
+    restart: unless-stopped
+    container_name: litellm_db
+    environment:
+      POSTGRES_DB: litellm
+      POSTGRES_USER: llmproxy
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dbpassword9090}
+    # Puerto 5432 expuesto para desarrollo local
+    # En Coolify producción, cambia a 'expose' si no necesitas acceso externo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d litellm -U llmproxy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - litellm-network
+
+  # Prometheus para métricas (OPCIONAL)
+  # NO necesita dominio público normalmente
+  # Si quieres acceder externamente, asigna dominio separado en Coolify
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    # Puerto 9090 expuesto para desarrollo local
+    # En Coolify producción, cambia a 'expose' o desactiva este servicio
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+    networks:
+      - litellm-network
+
+volumes:
+  postgres_data:
+    name: litellm_postgres_data
+  prometheus_data:
+    name: litellm_prometheus_data
+
+networks:
+  litellm-network:
+    driver: bridge
