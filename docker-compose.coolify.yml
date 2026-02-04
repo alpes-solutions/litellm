@@ -54,6 +54,9 @@ services:
       # Labels para Coolify
       - "coolify.managed=true"
       - "coolify.name=litellm"
+      - "coolify.type=application"
+      - "coolify.http.enabled=true"
+      - "coolify.http.port=4000"
 
   db:
     # Base de datos PostgreSQL - NO necesita dominio público
@@ -79,6 +82,8 @@ services:
       start_period: 10s
     networks:
       - litellm-network
+    labels:
+      - "coolify.managed=false"
 
   # Prometheus para métricas (OPCIONAL)
   # NO necesita dominio público normalmente
@@ -99,6 +104,8 @@ services:
       - "--storage.tsdb.retention.time=15d"
     networks:
       - litellm-network
+    labels:
+      - "coolify.managed=false"
 
 volumes:
   postgres_data:
