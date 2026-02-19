@@ -55,8 +55,13 @@ services:
       - "coolify.managed=true"
       - "coolify.name=litellm"
       - "coolify.type=application"
-      - "coolify.http.enabled=true"
-      - "coolify.http.port=4000"
+      # Labels de Traefik para enrutamiento
+      - "traefik.enable=true"
+      - "traefik.http.services.litellm.loadbalancer.server.port=4000"
+      - "traefik.http.routers.litellm.rule=Host(`litlellmui.alpessolutions.co`)"
+      - "traefik.http.routers.litellm.entrypoints=websecure"
+      - "traefik.http.routers.litellm.tls=true"
+      - "traefik.http.routers.litellm.tls.certresolver=letsencrypt"
 
   db:
     # Base de datos PostgreSQL - NO necesita dominio público
