@@ -68,10 +68,10 @@ services:
       POSTGRES_DB: litellm
       POSTGRES_USER: llmproxy
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dbpassword9090}
-    # Puerto 5432 expuesto para desarrollo local
-    # En Coolify producción, cambia a 'expose' si no necesitas acceso externo
-    ports:
-      - "5432:5432"
+    # Puerto solo accesible internamente en la red Docker
+    # NO exponer a internet para evitar ataques
+    expose:
+      - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
